@@ -1,7 +1,7 @@
 import urllib
 import re
-from sgmllib import SGMLParser
 import os
+from sgmllib import SGMLParser
 class Getcontent(SGMLParser):
     def __init__(self):
         self.content=[]
@@ -15,7 +15,7 @@ class Getcontent(SGMLParser):
         self.mark=0
         SGMLParser.reset(self)
 
-    def start_div(self,attrs):
+    def start_div(self,attrs):                      #一级div标签#
         if self.div == True:
             self.layer +=1
             return
@@ -26,36 +26,32 @@ class Getcontent(SGMLParser):
             if k=='class' and v=='image-package imagebubble' :
                 self.getimage = True
                 return
-
-    def end_div(self):
+    def end_div(self):                              
         if self.layer == 0:
             self.div = False
             return
         if self.div == True:
             self.layer -=1
             return
-
-    def start_p(self, attrs):
+    def start_p(self, attrs):                      #若<p>外存在div标签，则提取内容
         if self.div == False:
            return
         self.gettext = True
-
     def end_p(self):
         if self.gettext==True:
             self.gettext = False
+    def start_title(self,attrs):                   #遇到title标签，则提取内容             
+        self.getti = True
+    def end_title(self):
+        self.getti = False
 
-    def handle_data(self,text):
+    def handle_data(self,text):                    #将提取到的内容加入表格
         if self.gettext == True :
             self.content.append('        '+text+'\n')
         if self.getti == True:
             self.title=text
             self.content.append('                       '+text+'\n')
-            self.content.append('================================================================================'+'\n')
-
-    def start_title(self,attrs):
-        self.getti = True
-    def end_title(self):
-        self.getti = False
+            self.content.append('================================================================================'+'\n')   
     def start_img(self,attrs):
         if self.div ==False:
             return
@@ -65,25 +61,18 @@ class Getcontent(SGMLParser):
         src=[v for k,v in attrs if k=='src']
         if src:
             self.content.append('[id:'+str(src)[1:-1]+']'+'\n')
-
     def savetomarkdown(self):
         f=open(str(self.title)+'.md','w')
         for i in self.content:
             print i
             f.write(str(i))
-url1=[]
-j=0
-def geturl1(url):
+def geturl1(url):                              #获取专题页面的文章url
     html = urllib.urlopen(url).read()
     reu=re.compile(r'a href=.*?target')
     html=re.findall(reu,html)
     for i in html:
-        url1.append('http://www.jianshu.com'+str(i)[8:-8])
-    
-url2=[]
-
-
-def geturl2(url):
+        url1.append('http://www.jianshu.com'+str(i)[8:-8])  
+def geturl2(url):                              #得到文章内部的跳转链接，更多的url
     html = urllib.urlopen(url).read()
     reu=re.compile(r'slug=.*?data-pjax')
     reurl=re.findall(reu,html)
@@ -91,19 +80,19 @@ def geturl2(url):
     for i in reurl:
         url2.append('http://www.jianshu.com/p/'+str(i)[6:-11])
 
-#geturl1('http://www.jianshu.com/collection/723de9bac3cd')
+print 'Loading..........'            #start
+url1=[]
+url2=[]
 url=('http://www.jianshu.com/collection/fcd7a62be697/top','http://www.jianshu.com/collection/NEt52a/top','http://www.jianshu.com/collection/723de9bac3cd')
-#for m in url1:
-#    geturl2(m)
-#os.chdir('/home/wuyuze/python-1/theme1')
-for n in range(3):
-    geturl1(url[n])
-    url11=list(set(url1))
+j=0
+for n in range(3):              #一重循环
+    geturl1(url[n])            
+    url11=list(set(url1))       #将重复的url剔除
     for m in url11:
         geturl2(str(m))
-    os.mkdir('/home/wuyuze/python-1/theme'+str(n+1))
-    os.chdir('/home/wuyuze/python-1/theme'+str(n+1))
-    url22= list(set(url2))
+    url22= list(set(url2))        #将重复的url剔除
+    os.mkdir('/home/wuyuze/python1/theme'+str(n+1))        #创建文件夹
+    os.chdir('/home/wuyuze/python1/theme'+str(n+1))        #进入文件夹 
     for m in range(100):
         print url22[m]
         content=Getcontent()
@@ -111,3 +100,4 @@ for n in range(3):
         htmlcontent=urllib.urlopen(str(url22[m])).read()
         content.feed(htmlcontent)
         content.savetomarkdown()
+print "All work is finished!"   
